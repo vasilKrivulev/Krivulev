@@ -1,0 +1,124 @@
+<?php
+session_start();
+
+require_once 'forms.php';
+require_once 'dbconfig.php';
+require_once ('function_library.php');
+//require 'configuration/controler.php';
+
+
+if(!isset($CONTENT))
+{
+	$CONTENT = '';
+}
+
+if(isset($_SESSION['id']))
+{
+	//zarejda userpanel
+	//tuk sa neshtata samo kogato sme lognati
+	if(!isset($_GET['view']))
+	{
+		$_GET['view'] = '';
+	}
+	
+	switch($_GET['view'])
+	{
+		case 'changepassword' : $page = 'changepassword'; break;
+		case 'Comments' : $page = 'Comments'; break;
+		
+		default : $page = 'not found';
+	}
+
+	
+	if($page == 'Comments')
+	{
+		$preview = new Forms();
+		$CONTENT .=  $preview->Comments();
+		$user = $_SESSION['id'];
+		
+		mysql_open();
+		$QText = 'select c.id, c.user_id, c.comment, u.username from comments c left join users u on c.user_id = u.id';	
+		$QGet = mysql_query($QText);
+		
+		if($QGet)
+		{
+			if(mysql_num_rows($QGet) == 0)
+			{
+				$CONTENT .= 'Не съществува такъв запис!';
+			}
+			else
+			{
+				$CONTENT .=  '<table class="list" cellspacing="0" cellpadding="0" style="border: 1px solid #ccc;">
+								<tr>
+									<th>Потребител</th>
+									<th>Коментари</th>
+								</tr>';
+				while($row= mysql_fetch_row($QGet))
+				{
+					$CONTENT .= 
+					'<tr>
+						<td>'.$row[3].'</td>
+						<td>'.$row[2].'</td>
+					</tr>';
+				}
+				$CONTENT .=  '</table>';
+			}
+		}
+		else
+		{
+			$_SESSION['error_msg'] = 'problem '.mysql_error().' on '. __LINE__.$QText;
+			
+		}
+	}
+	
+	if($page == 'changepassword')
+	{
+		$preview = new Forms();
+		$CONTENT .=  $preview->ChangePassForm();
+	}
+}
+else
+//tuk sa neshtata za koito ne e neobhodimo da sme se lognali
+{
+	//zarejda login forma
+
+	if(!isset($_GET['view']))
+	{	
+		$preview = new Forms();
+		$CONTENT .= $preview->LoginForm();
+	}
+	else
+	{
+	//echo $_GET['view'];
+		switch($_GET['view'])
+		{
+			case 'registration' : $page = 'registration'; break;
+			case 'forgot_password' : $page = 'forgot_password'; break;
+			case 'login' : $page = 'login'; break;
+			
+			default : $page = 'not found';
+		}
+		
+		if($page == 'registration')
+		{
+			$preview = new Forms();
+			$CONTENT .= $preview->RegistrationForm();
+		}
+		
+		if($page == 'forgot_password')
+		{
+			$preview = new Forms();
+			$CONTENT .= $preview->ForgotPassForm();
+		}
+		if($page == 'login')
+		{	
+			$preview = new Forms();
+			$CONTENT .= $preview->LoginForm();
+		}
+	}
+}
+
+$CONTENT .='<script src="design/js/jquery.placeholder.js"></script>';
+require 'design/design.php';
+
+?>
