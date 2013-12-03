@@ -1,0 +1,13 @@
+<?php 
+
+function mysql_open()
+{
+	$dbhost = "localhost:3306"; // хост
+	$dbuser = "root"; // потребител
+	$dbpass = ""; // парола
+	$dbname = "comment_api"; // база данни
+	$con=mysql_connect($dbhost,$dbuser,$dbpass) or die ("Няма връзка с базата данни!"); // Връзка с базата данни
+	mysql_select_db($dbname, $con); // Избиране на базата данни
+	mysql_query('SET NAMES utf8');
+}
+?>
