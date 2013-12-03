@@ -1,0 +1,135 @@
+<?php
+//session_start();
+require_once 'dbconfig.php';
+
+class Forms
+{	
+	public $CONTENT;
+	
+	
+	public function __construct()
+	{
+		$this->SetData();
+	}
+	
+	public function SetData()
+	{
+		$this->CONTENT = '';
+	}
+	
+	public function GetData()
+	{
+		return $this->CONTENT;
+	}
+	
+	public function LoginForm()
+	{ 
+	
+		$CONTENT = '
+		<section  style="width:230px;">
+			<div class="sectionheader">Вход</div>
+			<article>
+				<form method="POST" action="controler.php?action=login">
+					<input type="text" name="txt_loginname" placeholder="Потребителско име/Е-майл" style="width: 180px;"/><br/>
+					<input type="password" name="txt_loginpass" placeholder="Парола" style="width: 180px;"/><br/>
+					<input type="hidden" name="txt_createdate" value="'. date("Y-m-d H:i:s") .'"/>
+					<input type="submit" name="btn_login" value="Влез"/>
+				</form>
+				<a href="index.php?view=forgot_password">Забравена парола</a>
+				<a href="index.php?view=registration">Регистрация</a>
+			</article>
+		</section>';
+		
+		
+		$CONTENT .='<script src="../design/js/jquery.placeholder.js"></script>';
+		return $CONTENT;
+		
+	}
+	
+	public function RegistrationForm()
+	{
+	
+		$CONTENT = '
+		<section style="width:230px;">
+			<div class="sectionheader">Регистрация</div>
+			<article>
+				<form method="POST" action="controler.php?action=registration">
+					<input type="text" name="txt_username" placeholder="Потребителско име" value="'.(isset($_SESSION['login']['username']) ? $_SESSION['login']['username']: '' ).'"/><br/>
+					<input type="text" name="txt_email" placeholder="Е-майл" /><br/>
+					<input type="password" name="txt_password" placeholder="Парола" /><br/>
+					<input type="hidden" name="txt_createdate" value="'.date("Y-m-d H:i:s").'"/>
+					<input type="submit" name="btn_registration" value="Регистрирай ме"/>
+				</form>
+			</article>
+		</section>';
+		
+		return $CONTENT;
+	}
+	
+	public function ChangePassForm()
+	{
+	
+		$CONTENT = '
+		<section style="width:230px;">
+			<div class="sectionheader">Смяна на парола</div>
+			<article>
+				<form action="controler.php?action=change_password" method="post">
+				<input type="password" name="txt_OldPass" placeholder="Стара парола" /><br/>
+				<input type="password" name="txt_NewPass" placeholder="Нова парола" /><br/>
+				<input type="submit" value="Смени паролата" name="btn_ChangePass">
+				</form>
+			</article>
+		</section>';
+		
+		return $CONTENT;
+	}
+	
+	public function ForgotPassForm()
+	{
+		$CONTENT = '
+		<section style="width:230px;">
+			<div class="sectionheader">Забравена парола</div>
+			<article>
+				<form action="controler.php?action=forgot_password" method="post">
+				<input type="text" name="forgot_pass_email" placeholder="Е-майл"/><br/>
+				<input type="submit" value="Получи нова парола" name="btn_ForgotPass">
+				</form>
+			</article>
+		</section>';
+		
+		return $CONTENT;
+	}
+	
+	public function ConvertDate($input_date)
+	{
+		return date('d.m.Y H:i:s', strtotime($input_date));
+	}
+	
+	public function Comments()
+	{
+		$CONTENT = '
+		<section style="width:530px;">
+			<div class="sectionheader">Коментари</div>
+			<article>
+				<table>
+					<tr>
+					<form action="controler.php?action=comments" method="post">
+						<td valign="middle">
+							<textarea name="txt_comment" placeholder="Напишете Вашият коментар"></textarea>
+						</td>
+						<td>
+							<input type="submit" value="Създай" id="submit_btn" name="submit_btn">
+						</td>
+					</form>
+				</tr>
+				</table>
+			</article>
+		</section>
+		';
+		
+		return $CONTENT;
+		
+	}	
+	
+}
+?>
