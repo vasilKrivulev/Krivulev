@@ -1,0 +1,334 @@
+<?php
+session_start();
+
+//error_reporting(E_ALL ^ E_NOTICE);
+require_once 'dbconfig.php';
+require_once 'function_library.php';
+if(!isset($_GET['action']))
+{
+	$_GET['action'] = '';
+}
+
+if($_GET['action'] == 'registration')
+{
+	$username = $_POST['txt_username'];
+	$password = $_POST['txt_password'];
+	$email = $_POST['txt_email'];
+	$create_date = $_POST['txt_createdate'];
+	$md5_pass = md5($_POST['txt_password']);
+		
+	$_SESSION['login']['username'] = $_POST['txt_username'];
+	$_SESSION['login']['email'] = $_POST['txt_email'];
+
+	mysql_open();
+	
+	#създавам проверка за уникалност на потребилтеско име и за е-майл по отделно
+	$T_SUserMail = 'select username, email from users where username="'.$username.'" or email="'.$email.'"';
+	$S_SUserMail = mysql_query($T_SUserMail) or die(mysql_error());
+	
+	while($W_SUserMail = mysql_fetch_array($S_SUserMail))
+	{
+		
+		if($W_SUserMail[0] == $username)
+		{
+			$_SESSION['error_msg'] = 'Вече съществува  потребител с това име';
+		}
+		
+		if($W_SUserMail[1] == $email)
+		{
+			$_SESSION['error_msg'] = 'Вече съществува потребител с този е-майл';
+		}
+		
+	}
+	
+	mysql_close();
+	
+	if(!FUNC_isset($_POST['txt_username']))
+	{
+		$_SESSION['error_msg'] = 'Въведете потребителско име';
+	}
+
+	if(!FUNC_isset($_POST['txt_email']))
+	{
+		$_SESSION['error_msg'] = 'Въведете е-майл';
+
+	}
+
+	if(!FUNC_isset($_POST['txt_password']) || strlen($_POST['txt_password']) < 6)
+	{
+		$_SESSION['error_msg'] = 'Въведете парола с поне 6 символа';
+	}
+	
+	#създавам проверка за дължината на потребилтеското име	
+	if((strlen($username) < 4) || (strlen($username) > 50))
+	{
+		$_SESSION['error_msg'] = 'Потребителското име трябва да има от 4 до 50 символа';
+	}
+	
+	#създавам проверка валиден е-майл
+	$regex = '/^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,3})$/'; 
+	if (!preg_match($regex, $email)) 
+	{
+		$_SESSION['error_msg'] = 'Въведете валиден е-майл';
+
+	} 
+
+	if(isset($_SESSION['error_msg']) && count($_SESSION['error_msg']) > 0)//proverka dali ima errormsg
+	{
+		header('location:index.php?view=registration');
+		exit();
+	}
+
+	
+	mysql_open();
+	
+	$T_InsertUser ='INSERT INTO users (username, password, email, create_date, last_login, last_ip) VALUES ("'.FUNC_MySQL_RES($_POST['txt_username']).'", "'.FUNC_MySQL_RES($md5_pass).'","'.FUNC_MySQL_RES($_POST['txt_email']).'", "'.$create_date.'", "'.$create_date.'", "'.$_SERVER['SERVER_NAME'].'")';
+	$S_InsertUser = mysql_query($T_InsertUser) or die(mysql_error());
+	if($S_InsertUser)
+	{
+		$_SESSION['id'] = mysql_insert_id();
+		$_SESSION['good_msg'] = "Успешна регистрация!";	
+		
+		mysql_close();
+		
+		header('location:index.php');
+		exit();
+	}
+	else
+	{
+		$_SESSION['error_msg'] = 'Неуспешна регистрация!';
+		header('location:index.php?view=registration');
+		exit();
+	}
+}
+
+
+if($_GET['action'] == 'login')
+{
+	//echo 'zdr';exit();
+	$login_name = $_POST['txt_loginname'];
+	$login_pass = $_POST['txt_loginpass'];
+	$md5_loginpass = md5($login_pass);
+
+	if(!FUNC_isset($login_name))
+	{
+		$_SESSION['error_msg'] = 'Въведете потребителско име/емайл';
+	}
+
+	if(!FUNC_isset($login_pass))
+	{
+		$_SESSION['error_msg'] = 'Въведете парола';
+		header('location:index.php');
+		exit();
+	}
+	
+#създавам SQL заявка за търсене по username/email и password		
+		mysql_open();
+		$T_SLogin = 'select id , username, email, password from users where (username = "'.FUNC_MySQL_RES($login_name).'" or email = "'.FUNC_MySQL_RES($login_name).'")and password="'.FUNC_MySQL_RES($md5_loginpass).'" limit 1';
+		$S_SLogin = mysql_query($T_SLogin) or die(mysql_error());
+		
+		if($S_SLogin)
+		{ 
+		  if(mysql_num_rows($S_SLogin) == 1)
+		  {
+			$_SESSION['good_msg'] = 'Здравейте, '.mysql_result($S_SLogin,0,1);
+			$_SESSION['id'] = mysql_result($S_SLogin,0,0);
+			$_SESSION['username'] = mysql_result($S_SLogin,0,1);
+			$_SESSION['email'] = mysql_result($S_SLogin,0,2);
+			$_SESSION['status'] = mysql_result($S_SLogin,0,3);
+			
+#създавам update SQl заявка като добавям IP и дата на последното влизане 			
+			$T_UpdateLogin = 'update users set last_login = "'.$_POST['txt_createdate'].'" , last_ip = "'.$_SERVER['SERVER_NAME'].'" where (username = "'.FUNC_MySQL_RES($login_name).'" or email = "'.FUNC_MySQL_RES($login_name).'")';
+			$S_UpdateLogin = mysql_query($T_UpdateLogin) or die (mysql_error());
+			
+			mysql_close();
+			
+			header('location:index.php');
+			exit();
+		  }
+		  else
+		  {
+			$_SESSION['error_msg'] = 'Грешно име/е-майл или парола!';
+			header('location:index.php');
+			exit();
+		  }
+		}
+}
+
+if($_GET['view'] == 'change_password')
+{
+	$preview = new Forms();
+	echo $preview->ChangePassForm();
+}
+
+if($_GET['action'] == 'change_password')
+{
+	$oldpass = $_POST['txt_OldPass'];
+	$md5_oldpass = md5($oldpass);
+	$newpass = $_POST['txt_NewPass'];
+	$md5_newpass = md5($newpass);
+	
+	if(!FUNC_isset($oldpass))
+	{
+		$_SESSION['error_msg'] = 'Въведете сегашната си парола';
+	}
+
+	if(!FUNC_isset($newpass) || !FUNC_isset($oldpass))
+	{
+		$_SESSION['error_msg'] = 'Въведете парола';
+		header('location:index.php?view=changepassword');
+		exit();
+	}
+	
+	mysql_open();
+	
+	#проверка дали въведената парола съответства на паролата на този потребител в базата данни
+	$T_SUserPass = "select password from users where id = ".$_SESSION['id']."";
+	$S_SUserPass = mysql_query($T_SUserPass) or die (mysql_error());
+	
+	while($W_SUserPass = mysql_fetch_array($S_SUserPass))
+	{
+		if($W_SUserPass[0] == $md5_oldpass)
+		{
+			if(strlen($newpass) > 6)
+			{
+				#запаметяване на новата парола
+				$T_UpdatePass = "update users set password = '$md5_newpass' where id = ".$_SESSION['id']."";
+				$S_UpdatePass = mysql_query($T_UpdatePass) or die (mysql_error());
+				
+				$_SESSION['good_msg'] = 'Паролата беше успешно сменена';
+				header('Location:index.php');
+				exit();
+			}
+			else
+			{
+				$_SESSION['error_msg'] = 'Паролата трябва да има поне 6 символа';
+				header('location:index.php?view=changepassword');
+				exit();
+			}
+		}
+		else
+		{
+			$_SESSION['error_msg'] = "Грешна парола";
+			header('location:index.php?view=changepassword');
+			exit();
+		}
+	}
+	mysql_close();
+}
+if($_GET['action'] == 'logout')
+{
+	$_SESSION['id'] = false;
+	$_SESSION['username'] = false;
+	$_SESSION['email'] = false;
+	$_SESSION['status'] = false;
+
+	unset($_SESSION['id']);
+	unset($_SESSION['username']);
+	unset($_SESSION['email']);
+	unset($_SESSION['status']);
+
+	session_destroy();
+
+	$_SESSION['good_msg'] = 'Успешен изход!';
+
+	header('Location:index.php');
+	exit;
+}
+
+if($_GET['action'] == 'forgot_password')
+{	
+
+	$mail = $_POST['forgot_pass_email'];
+
+	if(!FUNC_isset($_POST['forgot_pass_email']))
+	{
+		$_SESSION['error_msg'] = 'Въведете е-майл';
+	}
+	
+	#създавам проверка валиден е-майл
+	$regex = '/^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,3})$/'; 
+
+	if (!preg_match($regex, $mail)) 
+	{
+		$_SESSION['error_msg'] = 'Въведете валиден е-майл';
+	}
+	
+	mysql_open();
+
+	//проверка дали същвствува потребител с този емайл в базата данни
+	$T_SUserPassForgot = 'select email from users where email = "'.FUNC_MySQL_RES($mail).'" limit 1';
+	$S_SUserPassForgot = mysql_query($T_SUserPassForgot) or die (__LINE__ . mysql_error());
+ 
+	if(mysql_num_rows($S_SUserPassForgot) > 0)
+	{
+
+			$from  = 'admin@sitename.com';
+			$mail = mysql_result($S_SUserPassForgot, 0, 0);//$_POST['forgot_pass_email'];
+			$subj .= 'Получаване на нова парола';
+			$text .= 'Your new password is '.FUNC_GenerateCode(7).'';
+			$head  = 'MIME-Version: 1.0' . "\r\n";
+			$head .= 'Content-type: text/plain; charset=UTF-8' . "\r\n";
+			$head .= 'From: '.$from.' <'.$mail.'> ';
+			  
+			@ $bool_send = mail($mail, $subj, $text, $head);
+			$now = date('Y-m-d H:i:s');
+		
+		if($bool_send == true)
+		{
+			$_SESSION['good_msg'] = 'Съобщението беше успешно изпратено';
+			$T_ForgotPass = 'update users set `password` = "'.FUNC_GenerateCode(7).'" where email = "'.FUNC_MySQL_RES($mail).'"';
+			$S_ForgotPass = mysql_query($T_ForgotPass) or die (__LINE__ . mysql_error());
+
+			mysql_close();
+			
+			header('Location:index.php?view=login');
+			exit();
+		}
+		else
+		{
+			$_SESSION['error_msg'] = 'Съобщението не успя да се изпрати, моля опитайте отново';
+			header('Location:index.php?view=forgot_password');
+			exit();
+		}
+	}
+	else
+	{
+		$_SESSION['error_msg'] = 'Не съществува потребител с този емайл';
+		header('Location:index.php?view=forgot_password');
+		exit();
+	}
+}
+
+if($_GET['action'] == 'comments')
+{
+	$user = $_SESSION['id'];
+	$comment = $_POST['txt_comment'];
+	
+	mysql_open();
+
+if(!FUNC_isset($_POST['txt_comment']) || mb_strlen($_POST['txt_comment'],'UTF-8') < 2)
+		{
+			$_SESSION['error_msg'] = 'Въведете низ с поне два символа!';
+		}
+		else
+		{
+			
+			$T_SCreateComment = 'INSERT INTO comments (comment, user_id) VALUES ("'.$comment.'", "'.$user.'")';
+			$S_SCreateComment = mysql_query($T_SCreateComment) or die(mysql_error());
+			
+			$_SESSION['good_msg'] = 'Коментарът беше успешно добавен!';
+			header('Location:index.php?view=Comments');
+			exit();
+		}		
+	
+	mysql_close();
+
+	header('Location:index.php?view=Comments');
+	exit();
+}
+
+
+$CONTENT .='<script src="../design/js/jquery.placeholder.js"></script>';
+
+?>
