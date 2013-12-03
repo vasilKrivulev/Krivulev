@@ -1,0 +1,58 @@
+<?php
+
+  function FUNC_isset($variable)
+  {
+    return (isset($variable)) and (trim($variable) != '') ? true : false;
+  } 
+
+  function FUNC_MySQL_RES($strText)
+  {
+    $strTemp = $strText;
+    if (get_magic_quotes_gpc() == 1){ $strTemp = stripslashes($strTemp); }// Strip MagicQuotes
+    $strTemp = mysql_real_escape_string($strTemp);
+    return $strTemp;
+  }
+  
+  function FUNC_SystemMessages($bool_add_newline = false)
+  {
+    $strTemp = '';
+    $have_message = false;
+	
+    if(isset($_SESSION['error_msg']))
+    {
+
+		$strTemp .= '<span class="error">'.$_SESSION['error_msg'].'&nbsp;</span><br>'.PHP_EOL;
+		
+		unset($_SESSION['error_msg']);
+		$have_message = true;
+    }
+	
+    
+    if(isset($_SESSION['good_msg']))
+    {
+	
+		$strTemp .= '<span class="good">'.$_SESSION['good_msg'].'&nbsp;</span><br>'.PHP_EOL;
+	
+		unset($_SESSION['good_msg']);
+		$have_message = true;
+    }
+    
+    if($have_message and $bool_add_newline) { $strTemp .= '<br>'; } // $have_message  $have_message == true
+    return $strTemp;
+  }
+  
+  
+    function FUNC_GenerateCode($characters)
+  { 
+    $possible = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    $code = ''; 
+    $i = 6; 
+    while ($i < $characters) { 
+      $code .= substr($possible, mt_rand(0, strlen($possible)-1), 6); 
+      $i++; 
+    } 
+    
+    return $code; 
+  } 
+  
+ ?>
